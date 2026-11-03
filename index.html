@@ -103,6 +103,8 @@ pre { margin: 0; max-height: 220px; overflow: auto; font-family: var(--mono); fo
       <button id="btnConnect">수신기 연결</button>
       <button id="btnDemo" class="gray">데모</button>
     </div>
+    <button id="btnAll" class="blue">모든 기기에서 찾기 (HMSOFT가 안 보일 때)</button>
+    <p class="note" id="diag" style="margin:0"></p>
   </section>
 
   <section class="card" aria-label="채널 신호">
@@ -354,32 +356,51 @@ async function send(text) {
     try { chr.writeValueWithoutResponse ? await chr.writeValueWithoutResponse(part) : await chr.writeValue(part); } catch (e) {}
   }
 }
-async function connect() {
-  if (!navigator.bluetooth) { $("nobt").hidden = false; return; }
+async function pickDevice(all) {
+  return navigator.bluetooth.requestDevice(all ? { acceptAllDevices: true, optionalServices: [SVC] } : {
+    filters: [{ services: [SVC] }, { namePrefix: "HMSOFT" }, { namePrefix: "HMSoft" }, { namePrefix: "HM" }, { namePrefix: "BT05" }, { namePrefix: "CEW" }],
+    optionalServices: [SVC] });
+}
+async function connect(all) {
+  if (!navigator.bluetooth) { $("nobt").hidden = false; diag("이 브라우저에는 블루투스 기능이 없습니다 (크롬 + https 필요)"); return; }
   try {
-    if (!device) {
-      device = await navigator.bluetooth.requestDevice({
-        filters: [{ services: [SVC] }, { namePrefix: "HMSOFT" }, { namePrefix: "HMSoft" }, { namePrefix: "CEW" }],
-        optionalServices: [SVC] });
+    if (all || !device) {
+      device = await pickDevice(all);
       device.addEventListener("gattserverdisconnected", () => { chr = null; clearInterval(pingTimer); setLink(false, "연결 끊김 — 다시 연결을 누르세요"); });
     }
     $("kvName").textContent = device.name || "(이름 없음)";
-    setLink(false, "연결 중...");
-    const server = await device.gatt.connect();
-    const svc = await server.getPrimaryService(SVC);
+    let server = null, err = null;
+    for (let k = 1; k <= 3 && !server; k++) {            // 안드로이드는 첫 GATT 연결이 실패하는 일이 잦아 3번까지 다시 시도
+      setLink(false, `연결 중... (${k}/3)`);
+      try { server = await device.gatt.connect(); } catch (e) { err = e; await new Promise((r) => setTimeout(r, 800)); }
+    }
+    if (!server) throw err;
+    let svc;
+    try { svc = await server.getPrimaryService(SVC); }
+    catch (e) { throw new Error("이 장치에는 HM-10 서비스(FFE0)가 없습니다. 목록에서 HMSOFT(B4:10:7B:3D:3F:07)를 골랐는지 확인하세요"); }
     chr = await svc.getCharacteristic(CHR);
     chr.addEventListener("characteristicvaluechanged", (ev) => onText(dec.decode(ev.target.value)));
     await chr.startNotifications();
-    setLink(true, "수신기에 연결됨");
+    setLink(true, "수신기에 연결됨"); diag("");
     await send("mac\n");
     clearInterval(pingTimer);
     pingTimer = setInterval(() => send("ping\n"), 2000);
     send("ping\n");
     try { wakeLock = await navigator.wakeLock?.request("screen"); } catch (e) {}
   } catch (e) {
-    const msg = String(e && e.message || e);
-    setLink(false, /cancel/i.test(msg) ? "연결 취소됨" : "연결 실패: " + msg);
+    const name = e && e.name || "", msg = String(e && e.message || e);
+    if (name === "NotFoundError" && /cancel/i.test(msg)) { setLink(false, "연결 취소됨"); diag("목록에 HMSOFT가 없으면 아래 [모든 기기에서 찾기]를 눌러 보세요"); return; }
+    setLink(false, "연결 실패");
+    diag(`${name}: ${msg}`);
+    if (device && !chr) device = null;               // 다음에는 장치를 다시 고르도록
   }
+}
+async function diag(text) {
+  const el = $("diag"); if (!el) return;
+  const bt = !!navigator.bluetooth;
+  let avail = "?"; try { avail = bt && navigator.bluetooth.getAvailability ? ((await navigator.bluetooth.getAvailability()) ? "켜짐" : "꺼짐/권한 없음") : "-"; } catch (e) {}
+  el.innerHTML = (text ? `<b class="badc">${text}</b><br>` : "") +
+    `점검: 보안주소(https) ${isSecureContext ? "예" : "<b class='badc'>아니오</b>"} · 웹블루투스 ${bt ? "있음" : "<b class='badc'>없음</b>"} · 블루투스 ${avail}`;
 }
 function disconnect() {
   clearInterval(pingTimer);
@@ -426,7 +447,9 @@ function csv() {
 }
 
 // ---------- 버튼
-$("btnConnect").onclick = () => (chr ? disconnect() : connect());
+$("btnConnect").onclick = () => (chr ? disconnect() : connect(false));
+$("btnAll").onclick = () => { if (chr) disconnect(); connect(true); };
+diag("");
 $("btnDemo").onclick = demo;
 $("filter").onchange = render;
 $("btnMiss").onclick = () => addShot({ id: +$("filter").value || 1, res: "M", su: 0, sl: 0 });
