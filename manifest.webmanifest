@@ -1,0 +1,17 @@
+{
+  "name": "모의 전자충격기 훈련 평가",
+  "short_name": "CEW 평가",
+  "description": "태양전지 표적 수신기(HM-10) 블루투스 연결 · 적중 판정 · 점수 기록",
+  "lang": "ko",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#023A48",
+  "theme_color": "#023A48",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
