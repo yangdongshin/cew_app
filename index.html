@@ -198,6 +198,7 @@ main > .warnbox, main > #btnInstall { margin: 8px 12px 0; width: calc(100% - 24p
       <div>훈련 과제: <b class="big" id="taskTxt">-</b></div>
       <div class="note" id="taskDist"></div>
       <div class="row"><button id="btnPick" class="blue">과제 패널 정하기</button><button id="btnTaskOff" class="gray">과제 끄기</button></div>
+      <label class="note" style="display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="chkOne" style="width:18px;height:18px;margin:0"> 수신기 1대 모드: 상부 탐침 → 과제 상부 패널, 하부 탐침 → 과제 하부 패널로 기록</label>
     </div>
       <div class="row"><button id="btnMiss" class="red">미명중 추가</button><button id="btnUndo" class="gray">되돌리기</button></div>
     </div>
@@ -314,6 +315,10 @@ const panelCy = (z) => { const n = z > 32 ? z - 32 : z, p = PANELS.find((q) => q
 let TASK = { u: 7, l: 17, on: true };
 try { const t = JSON.parse(localStorage.getItem("cewTask") || "null"); if (t && t.u) TASK = t; } catch (e) {}
 const saveTask = () => { try { localStorage.setItem("cewTask", JSON.stringify(TASK)); } catch (e) {} };
+// 수신기 1대 모드: 수신기(zone)가 하나뿐일 때, 탐침 주파수(상부·하부)로 구분해 과제 패널 번호로 기록한다.
+// 위치는 측정값이 아니라 '지정값'이므로 기록에 asg 표시를 남긴다.
+let ONE_RX = true;
+try { const v = localStorage.getItem("cewOneRx"); if (v !== null) ONE_RX = v === "1"; } catch (e) {}
 const zonesOf = (x) => [...new Set([x.zu, x.zl].filter((z) => z))];
 const zoneText = (x) => { const a = x.zu, b = x.zl; return a && b && a !== b ? `${zoneName(a)}·${b > 32 === a > 32 ? b : zoneName(b)}` : zoneName(a || b); };
 const zoneName = (z) => !z ? "-" : z <= 32 ? "앞 " + z : z <= 64 ? "뒤 " + z : "zone " + z;
@@ -342,12 +347,13 @@ function renderTask() {
   $("maps").classList.toggle("picking", !!picking);
   $("btnPick").textContent = picking === 1 ? "상부 탐침 패널을 누르세요" : picking === 2 ? "하부 탐침 패널을 누르세요" : "과제 패널 정하기";
   $("btnTaskOff").textContent = picking ? "취소" : TASK.on ? "과제 끄기" : "과제 켜기";
-  if (!TASK.on) { $("taskTxt").textContent = "없음 (부위만 기록)"; $("taskDist").textContent = ""; return; }
+  if (!TASK.on) { $("taskTxt").textContent = "없음 (부위만 기록)"; $("taskDist").textContent = ONE_RX ? "수신기 1대 모드는 과제를 켜야 적용됩니다 (지금은 수신기 zone 번호로 기록)" : ""; return; }
   $("taskTxt").textContent = `상부 ${zoneName(TASK.u)}번 → 하부 ${zoneName(TASK.l)}번`;
   const dy = (panelCy(TASK.l) - panelCy(TASK.u)) * MM_PER_UNIT;
   $("taskDist").textContent = dy > 20
     ? `두 패널 중심 간격 약 ${Math.round(dy / 10)} cm → 탐침 벌어짐 ${SPREAD_DEG}°일 때 권장 사격거리 약 ${(dy / 1000 / Math.tan(SPREAD_DEG * Math.PI / 180)).toFixed(1)} m`
     : "하부 패널이 상부 패널보다 아래에 있어야 거리 계산이 됩니다";
+  if (ONE_RX) $("taskDist").textContent += " · 수신기 1대 모드(위치는 과제 패널로 지정)";
 }
 function onMapTap(e) {
   const id = e.target && e.target.id; if (!picking || !id || !id.startsWith("pz")) return;
@@ -358,6 +364,8 @@ function onMapTap(e) {
 $("mapF").addEventListener("click", onMapTap); $("mapB").addEventListener("click", onMapTap);
 $("btnPick").onclick = () => { picking = picking ? 0 : 1; renderTask(); };
 $("btnTaskOff").onclick = () => { if (picking) picking = 0; else { TASK.on = !TASK.on; saveTask(); } renderTask(); render(); };
+$("chkOne").checked = ONE_RX;
+$("chkOne").onchange = (e) => { ONE_RX = e.target.checked; try { localStorage.setItem("cewOneRx", ONE_RX ? "1" : "0"); } catch (er) {} renderTask(); };
 function renderMap(list) {
   const cnt = {};
   list.forEach((x) => { if (x.res !== "M") zonesOf(x).forEach((z) => { cnt[z] = (cnt[z] || 0) + 1; }); });
@@ -372,7 +380,7 @@ function renderMap(list) {
     const isLast = last && zonesOf(last).includes(z);
     if (isLast && !r.classList.contains("last")) { r.classList.add("last"); } else if (!isLast) r.classList.remove("last");
   }
-  $("zoneMsg").innerHTML = last ? `마지막 적중: <b>${zoneText(last)}번 패널</b>${last.pen ? ' <b class="badc">(감점 패널)</b>' : ""} · ${NAME[last.res]}${last.task ? ' · <b class="good">과제 명중</b>' : ""}` : "패널 번호는 각 패널 수신기의 zone 설정값입니다 (예: 수신기에 <b>zone 37</b>).";
+  $("zoneMsg").innerHTML = last ? `마지막 적중: <b>${zoneText(last)}번 패널</b>${last.pen ? ' <b class="badc">(감점 패널)</b>' : ""} · ${NAME[last.res]}${last.task ? ' · <b class="good">과제 명중</b>' : ""}${last.asg ? ' · <span class="note">수신기 1대 모드(위치 지정)</span>' : ""}` : "패널 번호는 각 패널 수신기의 zone 설정값입니다 (예: 수신기에 <b>zone 37</b>).";
 }
 $("penTxt").textContent = PEN_SCORE + "점";
 renderTask();
@@ -408,7 +416,7 @@ function queueShot(rec) {
   if (p && p.rec.res !== rec.res) {
     clearTimeout(p.timer); delete pend[rec.id];
     const u = rec.res === "U" ? rec : p.rec, l = rec.res === "L" ? rec : p.rec;
-    addShot({ id: rec.id, res: "V", su: u.su, sl: l.sl, zu: u.zu, zl: l.zl, dur: Math.max(u.dur || 0, l.dur || 0), rxT: u.rxT, pair: true });
+    addShot({ id: rec.id, res: "V", su: u.su, sl: l.sl, zu: u.zu, zl: l.zl, asg: !!(u.asg || l.asg), dur: Math.max(u.dur || 0, l.dur || 0), rxT: u.rxT, pair: true });
     return;
   }
   flushPend(rec.id);
@@ -422,7 +430,7 @@ function addShot(rec) {
   rec.cond = { ...COND }; rec.stat = { ...LSTAT };
   shots.push(rec);
   const b = $("banner");
-  b.textContent = `#${rec.no}  송신기${rec.id}  ${zonesOf(rec).length ? zoneText(rec) + "  " : ""}${NAME[rec.res]}${rec.pen ? " (감점)" : rec.task ? " · 과제 명중" : ""}`;
+  b.textContent = `#${rec.no}  송신기${rec.id}  ${zonesOf(rec).length ? zoneText(rec) + "  " : ""}${NAME[rec.res]}${rec.pen ? " (감점)" : rec.task ? " · 과제 명중" : ""}${rec.asg ? " [위치 지정]" : ""}`;
   b.style.background = rec.pen ? "var(--bad)" : COLOR[rec.res];
   if (navigator.vibrate) try { navigator.vibrate(rec.res === "V" || rec.res === "S" ? 150 : [60, 60, 60]); } catch (e) {}
   render();
@@ -483,7 +491,11 @@ function handle(line) {
       const base = { 1: 0, 2: 2, 3: 4 }[tx] ?? 0;
       const g = (ch) => (lastHit[ch] && Date.now() - lastHit[ch].t < 10000) ? lastHit[ch].snr : 0;
       const zn = +f[3] || 0;
-      queueShot({ id: tx, res, su: res !== "L" ? g(base) : 0, sl: tx !== 3 && res !== "U" ? g(base + 1) : 0, zu: res !== "L" ? zn : 0, zl: res !== "U" ? zn : 0, dur: +f[6], rxT: +f[1] });
+      let zu = res !== "L" ? zn : 0, zl = res !== "U" ? zn : 0, asg = false;
+      if (ONE_RX && TASK.on && TASK.u && TASK.l) {   // 수신기 1대 모드: 탐침 주파수로 과제 패널에 배정
+        zu = res !== "L" ? TASK.u : 0; zl = (res !== "U" && res !== "S") ? TASK.l : 0; asg = true;
+      }
+      queueShot({ id: tx, res, su: res !== "L" ? g(base) : 0, sl: tx !== 3 && res !== "U" ? g(base + 1) : 0, zu, zl, asg, dur: +f[6], rxT: +f[1] });
       break;
     }
     case "STAT":
@@ -700,8 +712,8 @@ function expLines(d) {
   return L;
 }
 function shotLines(d) {
-  const L = [["번호", "시각", "송신기", "상부 패널", "하부 패널", "결과", "SNR상(dB)", "SNR하(dB)", "점수", "수신기 시각(ms)", "지속(ms)", ...CH_, "클리핑", "잡음(mV)"].join(",")];
-  return L.concat(d.shots.map((x) => { const c = x.cond || {}, t = x.stat || {}; return [x.no, x.time, x.id, x.zu || "", x.zl || "", NAME[x.res], x.su ? Math.round(x.su) : "", x.sl ? Math.round(x.sl) : "", x.pen ? PEN_SCORE : SCORE[x.res], x.rxT ?? "", x.dur ?? "", c.stage ?? "", c.dist ?? "", c.ang ?? "", c.pow ?? "", c.lux ?? "", t.clip ?? "", t.nz ?? ""].join(","); }));
+  const L = [["번호", "시각", "송신기", "상부 패널", "하부 패널", "결과", "SNR상(dB)", "SNR하(dB)", "점수", "수신기 시각(ms)", "지속(ms)", ...CH_, "클리핑", "잡음(mV)", "위치 기록"].join(",")];
+  return L.concat(d.shots.map((x) => { const c = x.cond || {}, t = x.stat || {}; return [x.no, x.time, x.id, x.zu || "", x.zl || "", NAME[x.res], x.su ? Math.round(x.su) : "", x.sl ? Math.round(x.sl) : "", x.pen ? PEN_SCORE : SCORE[x.res], x.rxT ?? "", x.dur ?? "", c.stage ?? "", c.dist ?? "", c.ang ?? "", c.pow ?? "", c.lux ?? "", t.clip ?? "", t.nz ?? "", x.asg ? "지정" : "수신기"].join(","); }));
 }
 function saveSetCsv(d) {
   const tag = [d.cond.stage.split(" ")[0], d.cond.dist && d.cond.dist + "m", d.cond.ang !== "" && d.cond.ang + "deg"].filter(Boolean).join("_");
@@ -750,8 +762,8 @@ go(t0); miniStats();
 
 // ---------- CSV 저장
 function csv() {
-  const head = ["번호", "시각", "송신기", "상부 패널", "하부 패널", "감점", "과제 명중", "결과", "SNR상(dB)", "SNR하(dB)", "점수"];
-  const lines = [TASK.on ? `훈련 과제,상부 ${TASK.u}번,하부 ${TASK.l}번` : "훈련 과제,없음", head.join(",")].concat(shots.map((x) => [x.no, x.time, x.id, x.zu || "", x.zl || "", x.pen ? "감점" : "", x.task ? "O" : "", NAME[x.res], Math.round(x.su || 0), Math.round(x.sl || 0), (x.pen ? PEN_SCORE : SCORE[x.res])].join(",")));
+  const head = ["번호", "시각", "송신기", "상부 패널", "하부 패널", "감점", "과제 명중", "결과", "SNR상(dB)", "SNR하(dB)", "점수", "위치 기록"];
+  const lines = [TASK.on ? `훈련 과제,상부 ${TASK.u}번,하부 ${TASK.l}번` : "훈련 과제,없음", head.join(",")].concat(shots.map((x) => [x.no, x.time, x.id, x.zu || "", x.zl || "", x.pen ? "감점" : "", x.task ? "O" : "", NAME[x.res], Math.round(x.su || 0), Math.round(x.sl || 0), (x.pen ? PEN_SCORE : SCORE[x.res]), x.asg ? "지정" : "수신기"].join(",")));
   [0, 1, 2, 3].forEach((id) => { const s = summary(id); if (s.n) lines.push("", [id ? "송신기" + id : "합계", s.n + "발", "유효 " + s.full, "부분 " + s.part, "미명중 " + s.miss, "점수 " + s.score + "/" + s.max, "명중률 " + s.rate.toFixed(1) + "%"].join(",")); });
   const blob = new Blob(["﻿" + lines.join("\n")], { type: "text/csv" });
   const a = document.createElement("a");
