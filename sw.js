@@ -1,6 +1,6 @@
 // CEW 평가 앱 서비스 워커 — 인터넷이 없어도 앱이 열리도록 파일을 저장해 둔다.
 // 화면(index.html)은 '인터넷 먼저': 연결되어 있으면 항상 GitHub의 최신 버전을 받고, 없을 때만 저장본을 쓴다.
-const CACHE = "cew-v1";
+const CACHE = "cew-v2";
 const FILES = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./icon-maskable-512.png"];
 self.addEventListener("install", (e) => { e.waitUntil(caches.open(CACHE).then((c) => c.addAll(FILES))); self.skipWaiting(); });
 self.addEventListener("activate", (e) => {

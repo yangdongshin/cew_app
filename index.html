@@ -89,18 +89,77 @@ pre { margin: 0; max-height: 220px; overflow: auto; font-family: var(--mono); fo
 @media (prefers-reduced-motion: reduce) { .pz.last { animation: none; } }
 @media (max-width: 380px) { .bar { grid-template-columns: 104px 1fr 34px; } }
 @media (prefers-reduced-motion: reduce) { .fill { transition: none; } }
+.exp { display: grid; gap: 8px; }
+.cond { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.cond label { display: grid; gap: 2px; font-size: 11px; color: var(--muted); }
+.cond input, .cond select { font: inherit; font-size: 14px; padding: 7px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); color: var(--fg); min-width: 0; width: 100%; }
+.next { border-radius: 10px; padding: 12px; background: var(--bg); text-align: center; }
+.next b { display: block; font-size: 22px; }
+.saved { font-size: 12px; color: var(--ok); }
+
+/* ---- 화면 나눔(탭): 기능·단계별 한 화면 ---- */
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; }
+header { flex: none; padding-top: calc(8px + env(safe-area-inset-top, 0px)); padding-bottom: 8px; }
+header h1 { font-size: 17px; display: flex; align-items: center; gap: 8px; }
+header p { display: none; }
+.hdot { width: 12px; height: 12px; border-radius: 50%; background: var(--bad); display: inline-block; }
+.hdot.on { background: var(--ok); }
+.htab { margin-left: auto; font-size: 13px; font-weight: 600; opacity: .85; }
+main { flex: 1; min-height: 0; display: block; padding: 0; max-width: none; overflow: hidden; }
+main > .warnbox, main > #btnInstall { margin: 8px 12px 0; width: calc(100% - 24px); }
+.screen { display: none; height: 100%; overflow: auto; padding: 10px max(10px, env(safe-area-inset-right, 0px)) 10px max(10px, env(safe-area-inset-left, 0px)); gap: 10px; max-width: 1100px; margin: 0 auto; }
+.screen.on { display: flex; flex-direction: column; }
+.screen .card { padding: 12px; gap: 8px; }
+.card.grow { flex: 1; min-height: 160px; overflow: hidden; display: flex; flex-direction: column; }
+.card.grow .tbl { flex: 1; overflow: auto; }
+.tabs { flex: none; display: grid; grid-template-columns: repeat(4, 1fr); background: var(--card); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom, 0px); }
+.tabs button { background: transparent; color: var(--muted); border-radius: 0; padding: 8px 2px 9px; font-size: 13px; display: grid; gap: 1px; }
+.tabs button span { font-size: 15px; }
+.tabs button.on { color: var(--navy); box-shadow: inset 0 3px 0 var(--navy); }
+/* 사격 화면 */
+.fire.on { overflow: hidden; }
+.f-top { display: grid; gap: 8px; flex: none; }
+.f-map { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 6px; }
+.fire .banner { padding: 14px 10px; font-size: 21px; }
+.mini { display: grid; grid-template-columns: repeat(5, 1fr); text-align: center; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 6px 0; }
+.mini b { display: block; font-size: 20px; font-variant-numeric: tabular-nums; }
+.mini span { font-size: 11px; color: var(--muted); }
+.fire .task { padding: 8px; gap: 6px; }
+.fire .task .row button { padding: 9px 6px; font-size: 13px; }
+.fire .row > button { padding: 11px 8px; }
+.fire .next { padding: 8px; }
+.fire .next b { font-size: 19px; }
+.f-map .maps { flex: 1; min-height: 0; grid-template-rows: minmax(0, 1fr); overflow: hidden; }
+.f-map .maps figure { display: flex; flex-direction: column; min-height: 0; height: 100%; overflow: hidden; }
+.f-map .maps svg { flex: 1; min-height: 0; width: 100%; height: 100%; }
+.f-map .legend { font-size: 11px; gap: 2px 8px; }
+.f-map #zoneMsg { display: none; }
+/* 태블릿·가로 화면: 사격 화면을 좌우로 */
+@media (min-width: 760px) {
+  .fire.on { display: grid; grid-template-columns: minmax(300px, 1fr) 1.1fr; align-items: stretch; }
+  .f-top { align-content: start; }
+  .fire .banner { font-size: 26px; padding: 22px 12px; }
+  .mini b { font-size: 26px; }
+  #scr-res.on { display: grid; grid-template-columns: 1fr 1fr; align-items: stretch; }
+  #scr-res.on > .card:first-child { align-content: start; }
+  #scr-conn.on { display: grid; grid-template-columns: 1fr 1fr; align-content: start; }
+  #scr-conn.on > section[aria-label="수신기 상태"] { grid-column: 1 / -1; }
+}
+@media (max-height: 640px) { .f-map .legend { display: none; } .mini b { font-size: 17px; } }
 </style>
 </head>
 <body>
 <header>
-  <h1>모의 전자충격기 훈련 평가</h1>
+  <h1>모의 전자충격기 훈련 평가 <span class="hdot" id="hdot" title="수신기 연결"></span><span class="htab" id="htab"></span></h1>
   <p>태양전지 표적 수신기 · HM-10(HMSOFT) 블루투스</p>
 </header>
 <main>
   <button id="btnInstall" class="blue" hidden>📲 이 화면을 앱으로 설치 (홈 화면 아이콘)</button>
+  <section class="screen" id="scr-conn" data-title="연결·점검">
   <div class="warnbox" id="nobt" hidden>이 브라우저는 블루투스 연결을 지원하지 않습니다. 갤럭시에서는 <b>크롬</b>으로 <b>https 주소</b>를 열어 주세요. 지금은 데모로 화면만 볼 수 있습니다.</div>
-
-  <section class="card" aria-label="연결 상태">
+    <section class="card" aria-label="연결 상태">
     <h2>블루투스 연결 상태</h2>
     <div class="link"><span class="dot" id="dot"></span><span id="linkText">연결 안 됨</span></div>
     <dl class="kv">
@@ -117,28 +176,40 @@ pre { margin: 0; max-height: 220px; overflow: auto; font-family: var(--mono); fo
     <button id="btnAll" class="blue">모든 기기에서 찾기 (HMSOFT가 안 보일 때)</button>
     <p class="note" id="diag" style="margin:0"></p>
   </section>
-
-  <section class="card" aria-label="채널 신호">
+    <section class="card" aria-label="채널 신호">
     <h2>채널 신호 <span class="note">초록 = 검출 중 · 숫자 = SNR(dB) · 빨간선 15 dB</span></h2>
     <div class="bars" id="bars"></div>
   </section>
-
-  <div class="banner" id="banner">대기 중</div>
-
-  <section class="card" aria-label="표적 부위">
-    <div class="row" style="justify-content: space-between"><h2>표적 부위 <span class="note">숫자 = 패널(zone) 번호 · 노란 숫자 = 적중 수</span></h2></div>
-    <div class="task">
+    <section class="card" aria-label="수신기 상태">
+    <h2>수신기 상태</h2>
+    <p class="note" id="stat" style="margin:0">연결 후 1초마다 표시됩니다</p>
+    <p class="note" id="drop6" style="margin:4px 0 0"></p>
+    <p class="note" id="bgwarn" style="margin:0"></p>
+    <details><summary class="note">수신 문장 보기 (점검용)</summary><pre id="log"></pre></details>
+  </section>
+  </section>
+  <section class="screen fire" id="scr-fire" data-title="사격">
+    <div class="f-top">
+      <div class="banner" id="banner">대기 중</div>
+      <div class="next" id="nextBox" hidden><span class="note" id="nextNo"></span><b id="nextTxt"></b><span class="note" id="expStat"></span></div>
+      <div class="row" id="expBtns" hidden><button id="btnNone" class="gray">기록 없음으로 확정</button><button id="btnTrialUndo" class="gray">이전 발 취소</button></div>
+      <div class="mini"><div><b id="mN">0</b><span>발수</span></div><div><b id="mV" class="good">0</b><span>유효</span></div><div><b id="mP" style="color:var(--warn)">0</b><span>부분</span></div><div><b id="mM" class="badc">0</b><span>미명중</span></div><div><b id="mS">0/0</b><span>점수</span></div></div>
+      <div class="task">
       <div>훈련 과제: <b class="big" id="taskTxt">-</b></div>
       <div class="note" id="taskDist"></div>
       <div class="row"><button id="btnPick" class="blue">과제 패널 정하기</button><button id="btnTaskOff" class="gray">과제 끄기</button></div>
     </div>
-    <div class="maps" id="maps"><figure><figcaption>앞면 1~32</figcaption><svg id="mapF" viewBox="78 28 430 990" role="img" aria-label="앞면 표적"></svg></figure>
+      <div class="row"><button id="btnMiss" class="red">미명중 추가</button><button id="btnUndo" class="gray">되돌리기</button></div>
+    </div>
+    <div class="f-map">
+      <div class="maps" id="maps"><figure><figcaption>앞면 1~32</figcaption><svg id="mapF" viewBox="78 28 430 990" role="img" aria-label="앞면 표적"></svg></figure>
       <figure><figcaption>뒷면 33~64</figcaption><svg id="mapB" viewBox="78 28 430 990" role="img" aria-label="뒷면 표적"></svg></figure></div>
-    <div class="legend"><span><i style="background:#e5322d"></i>금지(머리·목·사타구니)</span><span><i style="background:#f2c500"></i>주의(가슴)</span><span><i style="background:#2fa84f"></i>허용</span><span><i style="border:2px solid #ff4b45"></i>감점 패널</span><span><i style="background:#12b8ff"></i>적중 패널</span><span><i style="border:2px solid #ffe14a"></i>마지막 적중</span><span><i style="border:2px dashed #888"></i>과제 패널(상·하)</span></div>
-    <p class="note" id="zoneMsg" style="margin:0">패널 번호는 각 패널 수신기의 zone 설정값입니다 (예: 수신기에 <b>zone 37</b>).</p>
+      <div class="legend"><span><i style="background:#e5322d"></i>금지(머리·목·사타구니)</span><span><i style="background:#f2c500"></i>주의(가슴)</span><span><i style="background:#2fa84f"></i>허용</span><span><i style="border:2px solid #ff4b45"></i>감점 패널</span><span><i style="background:#12b8ff"></i>적중 패널</span><span><i style="border:2px solid #ffe14a"></i>마지막 적중</span><span><i style="border:2px dashed #888"></i>과제 패널(상·하)</span></div>
+      <p class="note" id="zoneMsg" style="margin:0">패널 번호는 각 패널 수신기의 zone 설정값입니다 (예: 수신기에 <b>zone 37</b>).</p>
+    </div>
   </section>
-
-  <section class="card" aria-label="평가 결과">
+  <section class="screen" id="scr-res" data-title="결과">
+    <section class="card" aria-label="평가 결과">
     <div class="row" style="justify-content: space-between">
       <h2>평가 결과</h2>
       <select id="filter" aria-label="송신기 선택">
@@ -157,26 +228,45 @@ pre { margin: 0; max-height: 220px; overflow: auto; font-family: var(--mono); fo
       <div><b id="sPen" class="badc">0</b><span>감점 패널 적중</span></div>
     </div>
     <p class="note" style="margin:0">유효 적중 10점 · 부분 적중 5점 · 미명중 0점 · 감점 패널(앞 1~4, 13·14) 적중 <span id="penTxt">0점</span> · 과제 명중 = 상부 탐침이 과제 상부 패널, 하부 탐침이 과제 하부 패널에 동시에 적중</p>
-    <div class="row"><button id="btnMiss" class="red">미명중 추가</button><button id="btnUndo" class="gray">되돌리기</button></div>
+    
     <div class="row"><button id="btnCsv">기록 저장(CSV)</button><button id="btnNew" class="gray">새 훈련</button></div>
   </section>
-
-  <section class="card" aria-label="사격 기록">
+    <section class="card grow" aria-label="사격 기록">
     <h2>사격 기록 (최근 순)</h2>
     <div class="tbl"><table>
       <thead><tr><th>#</th><th>시각</th><th>송신기</th><th>부위</th><th>결과</th><th>SNR(dB)</th></tr></thead>
       <tbody id="shots"><tr><td colspan="6" class="mutedc">아직 기록이 없습니다</td></tr></tbody>
     </table></div>
   </section>
-
-  <section class="card" aria-label="수신기 상태">
-    <h2>수신기 상태</h2>
-    <p class="note" id="stat" style="margin:0">연결 후 1초마다 표시됩니다</p>
-    <p class="note" id="drop6" style="margin:4px 0 0"></p>
-    <p class="note" id="bgwarn" style="margin:0"></p>
-    <details><summary class="note">수신 문장 보기 (점검용)</summary><pre id="log"></pre></details>
+  </section>
+  <section class="screen" id="scr-exp" data-title="실험·설정">
+    <section class="card exp" aria-label="실험 모드와 자동 저장">
+    <h2>실험 모드 · 자동 저장 <span class="note">조건과 정답 순서를 고르면 결과를 자동으로 대조·저장합니다</span></h2>
+    <div class="cond">
+      <label>정답 순서<select id="preset">
+        <option value="">없음(훈련·시연)</option>
+        <option value="S1|3">1단계 3 m (40발)</option><option value="S1|4.5">1단계 4.5 m (40발)</option><option value="S1|6.5">1단계 6.5 m (40발)</option>
+        <option value="S2|0">2단계 0° (10발)</option><option value="S2|30">2단계 30° (10발)</option><option value="S2|45">2단계 45° (10발)</option><option value="S2|60">2단계 60° (10발)</option>
+      </select></label>
+      <label>단계<select id="cStage"><option>훈련</option><option>S0 준비</option><option>S1 판정</option><option>S2 입사각</option><option>S3 시연</option></select></label>
+      <label>거리(m)<input id="cDist" inputmode="decimal"></label>
+      <label>입사각(°)<input id="cAng" inputmode="decimal"></label>
+      <label>레이저 세기(메모)<input id="cPow" placeholder="예: 1.2Vpp"></label>
+      <label>조도(lx)<input id="cLux" inputmode="decimal"></label>
+    </div>
+    
+    
+    <div class="row"><button id="btnExpCsv" class="blue">실험 기록 CSV</button><button id="btnArc" class="gray">보관 기록 전체 CSV</button></div>
+    <p class="saved" id="saveMsg" style="margin:0">자동 저장 대기</p>
+  </section>
   </section>
 </main>
+<nav class="tabs" id="tabs">
+  <button data-go="conn"><span>①</span>연결·점검</button>
+  <button data-go="fire"><span>②</span>사격</button>
+  <button data-go="res"><span>③</span>결과</button>
+  <button data-go="exp"><span>④</span>실험·설정</button>
+</nav>
 
 <script>
 "use strict";
@@ -306,6 +396,7 @@ function render() {
     `<tr><td>${x.no}</td><td>${x.time}</td><td>송신기${x.id}</td><td${x.pen ? ' class="badc" style="font-weight:700"' : ""}>${zoneText(x)}</td><td style="color:${COLOR[x.res]};font-weight:700">${NAME[x.res]}${x.pen ? " ·감점" : ""}${x.task ? ' <span class="good">·과제</span>' : ""}</td><td>${x.res === "M" ? "-" : [x.su, x.sl].filter((v) => v).map(Math.round).join(" / ") || "-"}</td></tr>`).join("")
     : '<tr><td colspan="6" class="mutedc">아직 기록이 없습니다</td></tr>';
   renderMap(shots.filter((x) => !id || x.id === id));
+  renderExp(); persist();
 }
 // 상·하부 탐침이 서로 다른 패널(수신기)에 맞으면 각 수신기가 '부분 적중'을 따로 보낸다.
 // 같은 송신기의 상부·하부 부분 적중이 PAIR_MS 안에 들어오면 한 발의 '유효 적중'으로 합친다.
@@ -317,7 +408,7 @@ function queueShot(rec) {
   if (p && p.rec.res !== rec.res) {
     clearTimeout(p.timer); delete pend[rec.id];
     const u = rec.res === "U" ? rec : p.rec, l = rec.res === "L" ? rec : p.rec;
-    addShot({ id: rec.id, res: "V", su: u.su, sl: l.sl, zu: u.zu, zl: l.zl, dur: Math.max(u.dur || 0, l.dur || 0), pair: true });
+    addShot({ id: rec.id, res: "V", su: u.su, sl: l.sl, zu: u.zu, zl: l.zl, dur: Math.max(u.dur || 0, l.dur || 0), rxT: u.rxT, pair: true });
     return;
   }
   flushPend(rec.id);
@@ -328,12 +419,14 @@ function addShot(rec) {
   rec.pen = rec.res !== "M" && zonesOf(rec).some((z) => z <= 32 && PEN.has(z));
   rec.task = TASK.on && (rec.res === "V") && rec.zu === TASK.u && rec.zl === TASK.l;
   { const d = new Date(), p = (n) => String(n).padStart(2, "0"); rec.time = `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`; }
+  rec.cond = { ...COND }; rec.stat = { ...LSTAT };
   shots.push(rec);
   const b = $("banner");
   b.textContent = `#${rec.no}  송신기${rec.id}  ${zonesOf(rec).length ? zoneText(rec) + "  " : ""}${NAME[rec.res]}${rec.pen ? " (감점)" : rec.task ? " · 과제 명중" : ""}`;
   b.style.background = rec.pen ? "var(--bad)" : COLOR[rec.res];
   if (navigator.vibrate) try { navigator.vibrate(rec.res === "V" || rec.res === "S" ? 150 : [60, 60, 60]); } catch (e) {}
   render();
+  autoTrial(rec);
 }
 
 // ---------- 수신 문장 해석 (Rev1.3/1.4: ON, HIT, SHOT, STAT, LINK, MAC, #)
@@ -390,10 +483,11 @@ function handle(line) {
       const base = { 1: 0, 2: 2, 3: 4 }[tx] ?? 0;
       const g = (ch) => (lastHit[ch] && Date.now() - lastHit[ch].t < 10000) ? lastHit[ch].snr : 0;
       const zn = +f[3] || 0;
-      queueShot({ id: tx, res, su: res !== "L" ? g(base) : 0, sl: tx !== 3 && res !== "U" ? g(base + 1) : 0, zu: res !== "L" ? zn : 0, zl: res !== "U" ? zn : 0, dur: +f[6] });
+      queueShot({ id: tx, res, su: res !== "L" ? g(base) : 0, sl: tx !== 3 && res !== "U" ? g(base + 1) : 0, zu: res !== "L" ? zn : 0, zl: res !== "U" ? zn : 0, dur: +f[6], rxT: +f[1] });
       break;
     }
     case "STAT":
+      LSTAT = { fs: +f[2], dc: +f[3], nz: +f[4], clip: f[5], ovr: f[6] };
       $("stat").textContent = `${fw ? "펌웨어 " + fw + " · " : ""}표본화 ${(+f[2]).toFixed(1)} Hz · 직류 ${(+f[3]).toFixed(3)} V · 잡음 ${(+f[4]).toFixed(3)} mV · 클리핑 ${f[5]} · 오버런 ${f[6]}`;
       break;
     case "LINK": setRxLink(f[1] === "1"); if (f[2]) $("kvMac").textContent = f[2]; break;
@@ -517,6 +611,143 @@ function demo() {
   }, 3500));
 }
 
+
+// ---------- 실험 모드 · 자동 저장
+// 사격 기록·조건·정답 대조 결과를 발마다 휴대폰(localStorage)에 저장하고, 새로고침해도 복원한다.
+// '새 훈련'이나 정답 순서를 바꾸면 현재 세트를 보관함에 넣고 CSV를 자동으로 내려받는다.
+const SEQ = { "3": "LVLMLMULLUUUVLLVMMMUVVVUMVMULUULUMMLVMVV", "4.5": "LMUVMVMMMMULVVMLLLLVLUMVVUVUULUULVLMVUUM", "6.5": "VMVUUMVUMMMMVVULLUUUMVVLVLLLUMUVMLLLUVLM" };
+const TRUTH = { V: "V 양쪽 명중 — 가리개 없음", U: "U 상부만 — 하부 가리개", L: "L 하부만 — 상부 가리개", M: "M 미명중 — 둘 다 가리개" };
+const GOTN = { V: "유효", S: "단일", U: "부분상", L: "부분하", A: "따로접촉", M: "미명중", "": "없음" };
+let COND = { stage: "훈련", dist: "", ang: "", pow: "", lux: "" };
+let LSTAT = { fs: "", dc: "", nz: "", clip: "", ovr: "" };
+let EXP = { preset: "", seq: "", trials: [], lastT: 0 };
+let START = new Date().toISOString();
+const KS = "cewSession", KA = "cewArchive";
+const pad = (n) => String(n).padStart(2, "0");
+const stamp = (d) => `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}`;
+function snapshot() { return { v: 2, start: START, saved: new Date().toISOString(), cond: COND, shots, exp: EXP, task: TASK }; }
+function persist() {
+  try { localStorage.setItem(KS, JSON.stringify(snapshot())); $("saveMsg").textContent = `자동 저장됨 ${new Date().toLocaleTimeString()} · 사격 ${shots.length}발 · 정답 대조 ${EXP.trials.length}발 · 보관 세트 ${archive().length}개`; }
+  catch (e) { $("saveMsg").textContent = "자동 저장 실패: 저장 공간 부족 — 보관 기록 CSV를 내려받은 뒤 정리하세요"; }
+}
+function archive() { try { return JSON.parse(localStorage.getItem(KA) || "[]"); } catch (e) { return []; } }
+function pushArchive() {
+  if (!shots.length && !EXP.trials.length) return false;
+  const a = archive(); a.push(snapshot());
+  while (a.length) { try { localStorage.setItem(KA, JSON.stringify(a)); break; } catch (e) { a.shift(); } }
+  return true;
+}
+function restore() {
+  try {
+    const d = JSON.parse(localStorage.getItem(KS) || "null"); if (!d || d.v !== 2) return;
+    shots = d.shots || []; COND = d.cond || COND; EXP = d.exp || EXP; START = d.start || START;
+    if (shots.length || EXP.trials.length) { $("banner").textContent = `이전 기록 복원: 사격 ${shots.length}발 · 정답 대조 ${EXP.trials.length}발`; }
+  } catch (e) {}
+}
+function fillCond() { $("cStage").value = COND.stage; $("cDist").value = COND.dist; $("cAng").value = COND.ang; $("cPow").value = COND.pow; $("cLux").value = COND.lux; $("preset").value = EXP.preset; }
+["cStage", "cDist", "cAng", "cPow", "cLux"].forEach((k) => { $(k).onchange = () => { COND = { stage: $("cStage").value, dist: $("cDist").value, ang: $("cAng").value, pow: $("cPow").value, lux: $("cLux").value }; persist(); }; });
+
+// 정답 대조
+const okOf = (t, g) => t === "M" ? (g === "" || g === "M") : t === "V" ? (g === "V" || g === "S") : t === g;
+function lowerCI(k, n) {           // Clopper–Pearson 양측 95 % 하한
+  if (!n || !k) return 0;
+  const lc = (m, j) => { let s = 0; for (let i = 1; i <= j; i++) s += Math.log(m - j + i) - Math.log(i); return s; };
+  const tail = (p) => { let s = 0; for (let j = k; j <= n; j++) s += Math.exp(lc(n, j) + j * Math.log(p) + (n - j) * Math.log1p(-p)); return s; };
+  let lo = 0, hi = 1; for (let it = 0; it < 60; it++) { const m = (lo + hi) / 2; tail(m) < 0.025 ? lo = m : hi = m; } return lo;
+}
+function addTrial(rec) {
+  const i = EXP.trials.length; if (!EXP.seq || i >= EXP.seq.length) return;
+  const t = EXP.seq[i], g = rec ? rec.res : "";
+  EXP.trials.push({ k: i + 1, truth: t, got: g, ok: okOf(t, g), su: rec ? Math.round(rec.su || 0) : "", sl: rec ? Math.round(rec.sl || 0) : "", shot: rec ? rec.no : "", extra: 0, time: new Date().toLocaleTimeString(), cond: { ...COND }, stat: { ...LSTAT } });
+  EXP.lastT = rec ? Date.now() : 0;   // '기록 없음' 확정 직후의 사격은 중복으로 보지 않음
+  if (navigator.vibrate) try { navigator.vibrate(EXP.trials[i].ok ? 80 : [200, 80, 200]); } catch (e) {}
+  render();
+}
+function autoTrial(rec) {
+  if (!EXP.seq) return;
+  if (Date.now() - EXP.lastT < 3000 && EXP.trials.length) { EXP.trials[EXP.trials.length - 1].extra++; render(); return; }  // 같은 발의 중복 기록
+  addTrial(rec);
+}
+function renderExp() {
+  const on = !!EXP.seq; $("nextBox").hidden = !on; $("expBtns").hidden = !on; if (!on) return;
+  const n = EXP.trials.length, N = EXP.seq.length, k = EXP.trials.filter((x) => x.ok).length;
+  const last = EXP.trials[n - 1];
+  $("nextNo").textContent = n < N ? `다음 ${n + 1} / ${N}발` : `완료 ${N} / ${N}발 — CSV를 저장하고 다음 조건으로`;
+  $("nextTxt").textContent = n < N ? TRUTH[EXP.seq[n]] : "끝";
+  $("expStat").textContent = (last ? `직전 #${last.k}: 정답 ${last.truth} · 앱 ${GOTN[last.got]} → ${last.ok ? "일치" : "불일치"}${last.extra ? ` (중복 ${last.extra})` : ""} · ` : "") + `일치 ${k}/${n}${n ? ` (${(100 * k / n).toFixed(1)} %, 95 % 하한 ${(100 * lowerCI(k, n)).toFixed(1)} %)` : ""}`;
+}
+function presetSeq(v) {
+  if (!v) return "";
+  const [st, x] = v.split("|");
+  return st === "S1" ? SEQ[x] : "V".repeat(10);
+}
+
+// CSV
+const dl = (name, lines) => { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["﻿" + lines.join("\n")], { type: "text/csv" })); a.download = name; document.body.appendChild(a); a.click(); a.remove(); };
+const CH_ = ["단계", "거리(m)", "입사각(°)", "세기", "조도(lx)"];
+const cv = (c) => [c.stage, c.dist, c.ang, c.pow, c.lux];
+function expLines(d) {
+  const T = d.exp.trials; if (!T.length) return [];
+  const L = [`정답 대조,${d.exp.preset || "-"},시작 ${d.start}`, ["번호", "정답", "앱 결과", "일치", "중복", "SNR상(dB)", "SNR하(dB)", "사격 번호", "시각", ...CH_, "클리핑", "잡음(mV)"].join(",")]
+    .concat(T.map((x) => [x.k, x.truth, GOTN[x.got], x.ok ? "O" : "X", x.extra, x.su, x.sl, x.shot, x.time, ...cv(x.cond), x.stat.clip, x.stat.nz].join(",")));
+  L.push("");
+  ["V", "U", "L", "M"].forEach((t) => { const s = T.filter((x) => x.truth === t); if (s.length) { const k = s.filter((x) => x.ok).length; L.push([`정답 ${t}`, `${k}/${s.length}`, (100 * k / s.length).toFixed(1) + "%"].join(",")); } });
+  const k = T.filter((x) => x.ok).length;
+  L.push(["전체", `${k}/${T.length}`, (100 * k / T.length).toFixed(1) + "%", `95% 하한 ${(100 * lowerCI(k, T.length)).toFixed(1)}%`].join(","));
+  const tr = ["V", "U", "L", "M"], gt = ["V", "S", "U", "L", "A", "M", ""];
+  L.push("", "혼동행렬(행=정답 열=앱)," + gt.map((g) => GOTN[g]).join(","));
+  tr.forEach((t) => { if (T.some((x) => x.truth === t)) L.push([t, ...gt.map((g) => T.filter((x) => x.truth === t && x.got === g).length)].join(",")); });
+  return L;
+}
+function shotLines(d) {
+  const L = [["번호", "시각", "송신기", "상부 패널", "하부 패널", "결과", "SNR상(dB)", "SNR하(dB)", "점수", "수신기 시각(ms)", "지속(ms)", ...CH_, "클리핑", "잡음(mV)"].join(",")];
+  return L.concat(d.shots.map((x) => { const c = x.cond || {}, t = x.stat || {}; return [x.no, x.time, x.id, x.zu || "", x.zl || "", NAME[x.res], x.su ? Math.round(x.su) : "", x.sl ? Math.round(x.sl) : "", x.pen ? PEN_SCORE : SCORE[x.res], x.rxT ?? "", x.dur ?? "", c.stage ?? "", c.dist ?? "", c.ang ?? "", c.pow ?? "", c.lux ?? "", t.clip ?? "", t.nz ?? ""].join(","); }));
+}
+function saveSetCsv(d) {
+  const tag = [d.cond.stage.split(" ")[0], d.cond.dist && d.cond.dist + "m", d.cond.ang !== "" && d.cond.ang + "deg"].filter(Boolean).join("_");
+  const t = stamp(new Date(d.start));
+  if (d.exp.trials.length) dl(`CEW_실험_${tag}_${t}.csv`, expLines(d));
+  if (d.shots.length) dl(`CEW_사격_${tag}_${t}.csv`, shotLines(d));
+}
+function closeSet() {           // 현재 세트를 보관하고 CSV 자동 저장 후 비움
+  const d = snapshot();
+  if (pushArchive()) saveSetCsv(d);
+  shots = []; EXP = { preset: EXP.preset, seq: EXP.seq, trials: [], lastT: 0 }; START = new Date().toISOString();
+}
+$("preset").onchange = () => {
+  closeSet();
+  const v = $("preset").value; EXP.preset = v; EXP.seq = presetSeq(v);
+  if (v) { const [st, x] = v.split("|"); COND.stage = st === "S1" ? "S1 판정" : "S2 입사각"; if (st === "S1") { COND.dist = x; COND.ang = "0"; } else { COND.dist = "3"; COND.ang = x; } }
+  fillCond(); render();
+  if (v) go("fire");
+};
+$("btnNone").onclick = () => addTrial(null);
+$("btnTrialUndo").onclick = () => { EXP.trials.pop(); EXP.lastT = 0; render(); };
+$("btnExpCsv").onclick = () => saveSetCsv(snapshot());
+$("btnArc").onclick = () => {
+  const a = archive().concat([snapshot()]).filter((d) => d.shots.length || d.exp.trials.length);
+  const L = [];
+  a.forEach((d, i) => { L.push(`세트 ${i + 1},시작 ${d.start},${cv(d.cond).join(",")}`); L.push(...expLines(d), "", ...shotLines(d), "", ""); });
+  dl(`CEW_보관기록_전체_${stamp(new Date())}.csv`, L.length ? L : ["기록 없음"]);
+};
+
+
+// ---------- 화면 나눔(탭)
+function go(k) {
+  document.querySelectorAll(".screen").forEach((e) => e.classList.toggle("on", e.id === "scr-" + k));
+  document.querySelectorAll("#tabs button").forEach((b) => b.classList.toggle("on", b.dataset.go === k));
+  const sc = document.getElementById("scr-" + k); $("htab").textContent = sc ? sc.dataset.title : "";
+  try { localStorage.setItem("cewTab", k); } catch (e) {}
+}
+document.querySelectorAll("#tabs button").forEach((b) => (b.onclick = () => go(b.dataset.go)));
+// 연결 표시를 머리줄에도: 처음 연결되면 사격 화면으로
+new MutationObserver(() => { const on = $("dot").classList.contains("on"); const was = $("hdot").classList.contains("on"); $("hdot").classList.toggle("on", on); if (on && !was) go("fire"); }).observe($("dot"), { attributes: true, attributeFilter: ["class"] });
+// 사격 화면의 요약 숫자 = 결과 화면 숫자
+function miniStats() { [["mN","sN"],["mV","sV"],["mP","sP"],["mM","sM"],["mS","sS"]].forEach(([a, b]) => { $(a).textContent = $(b).textContent; }); }
+new MutationObserver(miniStats).observe($("sN").parentElement.parentElement, { subtree: true, childList: true, characterData: true });
+let t0 = "conn"; try { t0 = localStorage.getItem("cewTab") || "conn"; } catch (e) {}
+go(t0); miniStats();
+
 // ---------- CSV 저장
 function csv() {
   const head = ["번호", "시각", "송신기", "상부 패널", "하부 패널", "감점", "과제 명중", "결과", "SNR상(dB)", "SNR하(dB)", "점수"];
@@ -537,11 +768,12 @@ diag("");
 $("btnDemo").onclick = demo;
 $("filter").onchange = render;
 $("btnMiss").onclick = () => addShot({ id: +$("filter").value || 1, res: "M", su: 0, sl: 0 });
-$("btnUndo").onclick = () => { shots.pop(); render(); };
-$("btnNew").onclick = () => { shots = []; F6.dropped = 0; $("drop6").textContent = ""; send("reset\n"); $("banner").textContent = "대기 중"; $("banner").style.background = ""; render(); };
-$("btnCsv").onclick = csv;
+$("btnUndo").onclick = () => { shots.pop(); render(); };   // render()가 자동 저장
+$("btnNew").onclick = () => { closeSet(); F6.dropped = 0; $("drop6").textContent = ""; send("reset\n"); $("banner").textContent = "대기 중"; $("banner").style.background = ""; render(); };
+$("btnCsv").onclick = () => { csv(); };
 document.addEventListener("visibilitychange", async () => { if (document.visibilityState === "visible" && chr) { try { wakeLock = await navigator.wakeLock?.request("screen"); } catch (e) {} } });
 if (!navigator.bluetooth) $("nobt").hidden = false;
+restore(); fillCond();
 render();
 // 앱 설치(홈 화면 아이콘) · 오프라인 실행용 서비스 워커
 if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
