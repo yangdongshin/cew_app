@@ -437,6 +437,23 @@ function addShot(rec) {
   autoTrial(rec);
 }
 
+// ---------- 예비 판정: 수신기의 ON(명중 시작) 신호로 5초 변조가 끝나기 전에 바로 표시한다.
+// 점수·기록은 여전히 SHOT(최종 판정)으로만 남긴다.
+const LIVE = {}, UPF = { 1: 2000, 2: 4000 }, LOF = { 1: 3000, 2: 5000 };
+function liveOn(tx, hz) {
+  if (!UPF[tx] || (hz !== UPF[tx] && hz !== LOF[tx])) return;
+  const s = LIVE[tx] || (LIVE[tx] = { u: false, l: false });
+  const was = s.u && s.l;
+  if (hz === UPF[tx]) s.u = true; else s.l = true;
+  clearTimeout(s.timer); s.timer = setTimeout(() => { delete LIVE[tx]; }, 8000);
+  const both = s.u && s.l, b = $("banner");
+  const where = ONE_RX && TASK.on ? (both ? ` (앞 ${TASK.u}·${TASK.l})` : s.u ? ` (앞 ${TASK.u})` : ` (앞 ${TASK.l})`) : "";
+  b.textContent = `판정 중 · 송신기${tx} ${both ? "상부+하부 감지 → 유효 예상" : s.u ? "상부 감지" : "하부 감지"}${where}`;
+  b.style.background = both ? "var(--ok)" : "var(--warn)";
+  if (navigator.vibrate) try { if (both && !was) navigator.vibrate(120); else if (!was && !(s.u && s.l)) navigator.vibrate(40); } catch (e) {}
+}
+function liveEnd(tx) { const s = LIVE[tx]; if (s) { clearTimeout(s.timer); delete LIVE[tx]; } }
+
 // ---------- 수신 문장 해석 (Rev1.3/1.4: ON, HIT, SHOT, STAT, LINK, MAC, #)
 let lastRx = 0, buf = "", fw = "";
 function log(line) {
@@ -482,10 +499,11 @@ function handle(line) {
   const f = line.split(",");
   F6.feed(f);
   switch (f[0]) {
-    case "ON": { const ch = FREQ[+f[5]]; if (ch !== undefined) setBar(ch, 15, true); break; }
+    case "ON": { const ch = FREQ[+f[5]]; if (ch !== undefined) setBar(ch, 15, true); liveOn(+f[2], +f[5]); break; }
     case "HIT": { const ch = FREQ[+f[5]]; if (ch !== undefined) { setBar(ch, +f[7], false); lastHit[ch] = { snr: +f[7], t: Date.now() }; } break; }
     case "SHOT": {
       const tx = +f[2], ok = (f[4] || "").toUpperCase().startsWith("V"), who = (f[5] || "").toUpperCase();
+      liveEnd(tx);
       if (tx === 3) { const w = F6.why(+f[1], +f[6]); if (w) { F6.dropped++; log(`  └ 송신기3 판정 제외 (${w}) — 누적 ${F6.dropped}건`); $("drop6").textContent = `송신기3 오판정 제외 ${F6.dropped}건`; break; } }
       const res = tx === 3 ? (ok ? "S" : "U") : ok ? "V" : who === "UL" ? "A" : (who === "U" ? "U" : "L");   // A = 상·하부가 따로따로 닿음(Rev1.6)
       const base = { 1: 0, 2: 2, 3: 4 }[tx] ?? 0;
